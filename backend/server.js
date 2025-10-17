@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 
 // Import middleware
 const resolveTenant = require('./middleware/tenantResolver');
+const { authenticateToken } = require('./middleware/auth');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -58,6 +59,15 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date().toISOString(),
     tenant: req.tenant ? req.tenant.name : 'No tenant resolved'
+  });
+});
+
+// Test auth endpoint
+app.get('/test-auth', authenticateToken, (req, res) => {
+  res.json({ 
+    status: 'Authenticated', 
+    user: req.user ? req.user.email : 'No user',
+    tenant: req.tenant ? req.tenant.name : 'No tenant'
   });
 });
 

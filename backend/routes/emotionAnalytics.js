@@ -7,7 +7,7 @@ const { authenticateToken, requirePermission } = require('../middleware/auth');
 const router = express.Router();
 
 // Get emotion analytics overview
-router.get('/overview', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+router.get('/overview', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
@@ -82,7 +82,7 @@ router.get('/overview', authenticateToken, requirePermission('view_analytics'), 
 });
 
 // Get emotion trends
-router.get('/trends', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+router.get('/trends', authenticateToken, async (req, res) => {
   try {
     const { timeRange = '30d', granularity = 'daily' } = req.query;
     
@@ -204,7 +204,7 @@ router.get('/heatmap', authenticateToken, requirePermission('view_analytics'), a
 });
 
 // Get emotional insights
-router.get('/insights', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+router.get('/insights', authenticateToken, async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -443,6 +443,170 @@ router.post('/generate-report', authenticateToken, requirePermission('view_analy
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to generate emotion report'
+    });
+  }
+});
+
+// Get department emotion analytics (Admin only)
+router.get('/departments', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    
+    const days = parseInt(timeRange.replace('d', ''));
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get department breakdown
+    const departmentData = await EmotionAnalytics.aggregate([
+      {
+        $match: {
+          tenantId: req.tenant._id,
+          date: { $gte: startDate }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $group: {
+          _id: '$user.department',
+          totalUsers: { $addToSet: '$userId' },
+          averageMood: { $avg: '$emotionalMetrics.moodScore' },
+          averageStress: { $avg: '$emotionalMetrics.stressLevel' },
+          averageEnergy: { $avg: '$emotionalMetrics.energyLevel' },
+          totalConversations: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          department: '$_id',
+          totalUsers: { $size: '$totalUsers' },
+          averageMood: { $round: ['$averageMood', 1] },
+          averageStress: { $round: ['$averageStress', 1] },
+          averageEnergy: { $round: ['$averageEnergy', 1] },
+          totalConversations: 1
+        }
+      },
+      { $sort: { averageMood: -1 } }
+    ]);
+
+    res.json({ departments: departmentData });
+  } catch (error) {
+    console.error('Get department analytics error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch department analytics'
+    });
+  }
+});
+
+// Get organization-wide emotion analytics (Admin only)
+router.get('/organization', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    
+    const days = parseInt(timeRange.replace('d', ''));
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get organization-wide metrics
+    const orgData = await EmotionAnalytics.aggregate([
+      {
+        $match: {
+          tenantId: req.tenant._id,
+          date: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalUsers: { $addToSet: '$userId' },
+          averageMood: { $avg: '$emotionalMetrics.moodScore' },
+          averageStress: { $avg: '$emotionalMetrics.stressLevel' },
+          averageEnergy: { $avg: '$emotionalMetrics.energyLevel' },
+          averageSatisfaction: { $avg: '$emotionalMetrics.satisfaction' },
+          averageEngagement: { $avg: '$emotionalMetrics.engagement' },
+          averageWellBeing: { $avg: '$emotionalMetrics.wellBeing' },
+          totalConversations: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          totalUsers: { $size: '$totalUsers' },
+          averageMood: { $round: ['$averageMood', 1] },
+          averageStress: { $round: ['$averageStress', 1] },
+          averageEnergy: { $round: ['$averageEnergy', 1] },
+          averageSatisfaction: { $round: ['$averageSatisfaction', 1] },
+          averageEngagement: { $round: ['$averageEngagement', 1] },
+          averageWellBeing: { $round: ['$averageWellBeing', 1] },
+          totalConversations: 1
+        }
+      }
+    ]);
+
+    res.json({ organization: orgData[0] || {} });
+  } catch (error) {
+    console.error('Get organization analytics error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch organization analytics'
+    });
+  }
+});
+
+// Get emotion heatmap data
+router.get('/heatmap', authenticateToken, requirePermission('view_analytics'), async (req, res) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    
+    const days = parseInt(timeRange.replace('d', ''));
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const heatmapData = await EmotionAnalytics.aggregate([
+      {
+        $match: {
+          tenantId: req.tenant._id,
+          date: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            dayOfWeek: { $dayOfWeek: '$date' },
+            hour: { $hour: '$date' }
+          },
+          averageMood: { $avg: '$emotionalMetrics.moodScore' },
+          averageStress: { $avg: '$emotionalMetrics.stressLevel' },
+          averageEnergy: { $avg: '$emotionalMetrics.energyLevel' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          dayOfWeek: '$_id.dayOfWeek',
+          hour: '$_id.hour',
+          averageMood: { $round: ['$averageMood', 1] },
+          averageStress: { $round: ['$averageStress', 1] },
+          averageEnergy: { $round: ['$averageEnergy', 1] },
+          count: 1
+        }
+      },
+      { $sort: { dayOfWeek: 1, hour: 1 } }
+    ]);
+
+    res.json({ heatmap: heatmapData });
+  } catch (error) {
+    console.error('Get heatmap data error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch heatmap data'
     });
   }
 });

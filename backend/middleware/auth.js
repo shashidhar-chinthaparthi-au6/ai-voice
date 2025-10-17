@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const authenticateToken = async (req, res, next) => {
@@ -20,7 +21,7 @@ const authenticateToken = async (req, res, next) => {
       _id: decoded.userId,
       tenantId: req.tenant._id,
       isActive: true
-    }).populate('tenantId');
+    });
     
     if (!user) {
       return res.status(401).json({ 
