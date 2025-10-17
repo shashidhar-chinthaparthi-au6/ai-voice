@@ -301,12 +301,14 @@ class EmotionAIService {
   // Generate conversational AI response
   async generateConversationalResponse(conversationContext) {
     try {
+      console.log('Full conversation context received:', conversationContext);
+      
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: `You are a supportive AI assistant conducting an emotional check-in conversation. You should:
+            content: `You are Cuby, a supportive AI assistant conducting an emotional check-in conversation. You should:
             1. Be empathetic and understanding
             2. Ask follow-up questions based on what the user shared
             3. Show genuine interest in their feelings
@@ -315,12 +317,16 @@ class EmotionAIService {
             6. Be encouraging and supportive
             7. Ask about specific aspects they mentioned
             8. Keep the conversation flowing naturally
+            9. Reference previous parts of the conversation when relevant
+            10. Build on what the user has already shared
+            11. Always remember you are Cuby, a caring AI assistant
             
+            You have access to the full conversation history. Use it to provide contextual, personalized responses.
             Respond with a natural, conversational follow-up question or comment.`
           },
           {
             role: 'user',
-            content: `Conversation context: ${conversationContext}`
+            content: `Here is our full conversation so far:\n\n${conversationContext}\n\nPlease respond naturally to the user's latest message, considering the entire conversation context.`
           }
         ],
         temperature: 0.8,
