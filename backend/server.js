@@ -16,6 +16,8 @@ const responseRoutes = require('./routes/responses');
 const analyticsRoutes = require('./routes/analytics');
 const tenantRoutes = require('./routes/tenant');
 const userRoutes = require('./routes/users');
+const emotionConversationRoutes = require('./routes/emotionConversations');
+const emotionAnalyticsRoutes = require('./routes/emotionAnalytics');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,6 +68,8 @@ app.use('/api/responses', responseRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/tenant', tenantRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/emotion-conversations', emotionConversationRoutes);
+app.use('/api/emotion-analytics', emotionAnalyticsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
