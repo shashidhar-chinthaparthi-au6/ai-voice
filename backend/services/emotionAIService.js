@@ -297,6 +297,55 @@ class EmotionAIService {
       };
     }
   }
+
+  // Generate conversational AI response
+  async generateConversationalResponse(conversationContext) {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a supportive AI assistant conducting an emotional check-in conversation. You should:
+            1. Be empathetic and understanding
+            2. Ask follow-up questions based on what the user shared
+            3. Show genuine interest in their feelings
+            4. Keep responses conversational and natural (1-2 sentences)
+            5. Avoid repeating the same questions
+            6. Be encouraging and supportive
+            7. Ask about specific aspects they mentioned
+            8. Keep the conversation flowing naturally
+            
+            Respond with a natural, conversational follow-up question or comment.`
+          },
+          {
+            role: 'user',
+            content: `Conversation context: ${conversationContext}`
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 150
+      });
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      console.error('Conversational response generation error:', error);
+      // Fallback responses
+      const fallbackResponses = [
+        "Thank you for sharing. How are you feeling right now?",
+        "That's interesting. What's been on your mind lately?",
+        "I understand. How has your day been so far?",
+        "Thanks for telling me. What's making you feel this way?",
+        "I appreciate you sharing. How are things at work?",
+        "That sounds important. Can you tell me more about that?",
+        "I hear you. What would help you feel better?",
+        "Thank you for being open. How are you coping with this?",
+        "That's valuable insight. What's your biggest concern right now?",
+        "I'm listening. What else would you like to talk about?"
+      ];
+      return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    }
+  }
 }
 
 module.exports = new EmotionAIService();

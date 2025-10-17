@@ -279,4 +279,35 @@ router.get('/patterns/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+// Generate AI conversation response
+router.post('/generate-response', authenticateToken, [
+  body('conversationContext').notEmpty()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: errors.array().map(e => e.msg).join(', ')
+      });
+    }
+
+    const { conversationContext } = req.body;
+
+    // Generate contextual AI response using OpenAI
+    const aiResponse = await emotionAIService.generateConversationalResponse(conversationContext);
+
+    res.json({
+      response: aiResponse,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Generate response error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to generate AI response'
+    });
+  }
+});
+
 module.exports = router;
